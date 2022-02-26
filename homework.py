@@ -36,7 +36,7 @@ logger.addHandler(handler)
 
 
 def send_message(bot, message):
-    """Отправка сообщения ботом"""
+    """Отправка сообщения ботом."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
     except Exception as error:
@@ -68,10 +68,10 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Получение статуса ответа"""
+    """Получение статуса ответа."""
     homework_name = homework["homework_name"]
     homework_status = homework["status"]
-    if not homework_status in HOMEWORK_STATUSES:
+    if homework_status not in HOMEWORK_STATUSES:
         logger.error("Такого статуса нет")
         raise KeyError
     verdict = HOMEWORK_STATUSES[homework_status]
@@ -79,14 +79,14 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """Проверка наличия токенов"""
-    if PRACTICUM_TOKEN == None:
+    """Проверка наличия токенов."""
+    if PRACTICUM_TOKEN is None:
         logger.critical("PRACTICUM_TOKEN пустой")
         return False
-    if TELEGRAM_TOKEN == None:
+    if TELEGRAM_TOKEN is None:
         logger.critical("TELEGRAM_TOKEN пустой")
         return False
-    if TELEGRAM_CHAT_ID == None:
+    if TELEGRAM_CHAT_ID is None:
         logger.critical("TELEGRAM_CHAT_ID пустой")
         return False
     else:
@@ -100,7 +100,6 @@ def main():
     current_timestamp = int(time.time())
 
     while True:
-        
         try:
             response = get_api_answer(current_timestamp)
             homework = check_response(response)[0]
