@@ -111,7 +111,7 @@ def main():
 
     while True:
         try:
-            if check_tokens() == False:
+            if check_tokens() is False:
                 raise TokenIsEmptyError
             response = get_api_answer(current_timestamp)
             homework = check_response(response)[0]
