@@ -42,8 +42,7 @@ def send_message(bot, message):
         bot.send_message(TELEGRAM_CHAT_ID, message)
     except telegram.error.TelegramError:
         raise NoMessageSendError
-    else:
-        logger.info("Сообщение успешно отправлено")
+    logger.info("Сообщение успешно отправлено")
 
 
 def get_api_answer(current_timestamp):
@@ -56,37 +55,47 @@ def get_api_answer(current_timestamp):
         )
     except requests.exceptions.RequestException:
         raise GetApiAnswerError
-    # если это убрать - pytest не проходит
     if homework_statuses.status_code != 200:
-        raise GetApiAnswerError
+        value_error_message = (
+            f"Код ответа пришел {homework_statuses.status_code}"
+        )
+        raise ValueError(value_error_message)
     response = homework_statuses.json()
     return response
 
 
 def check_response(response):
     """Проверка ответа."""
-    homework = response["homeworks"]
-    if isinstance(homework, dict):
-        raise ValueError("homework - это словарь")
-    if not isinstance(homework, list):
-        raise ValueError("homework - это список")
-    if not response["homeworks"]:
+    if type(response) is not dict:
+        response_status_message = (
+            f"Ответ сервера не является словарем, его тип {type(response)}"
+        )
+        raise TypeError(response_status_message)
+    if "homeworks" not in response:
         raise KeyError("в словаре не имеется ключа 'homeworks'")
+    homeworks = response["homeworks"]
+    if type(homeworks) is not list:
+        homework_status_message = (
+            f"Ответ сервера не является списком, его тип {type(homeworks)}"
+        )
+        raise TypeError(homework_status_message)
     if (len(response["homeworks"])) == 0:
-        raise IndexError("Список в check_response пришел пустым")
+        raise ValueError("Список 'homeworks' в check_response пришел пустым")
+
     return response["homeworks"]
 
 
-def parse_status(homework):
+def parse_status(homeworks):
     """Получение статуса ответа."""
-    if not homework["homework_name"]:
+    if "homework_name" not in homeworks:
         raise KeyError("в словаре не имеется ключа 'homework_name'")
-    if not homework["status"]:
+    if "status" not in homeworks:
         raise KeyError("в словаре не имеется ключа 'status'")
-    homework_name = homework["homework_name"]
-    homework_status = homework["status"]
+    homework_name = homeworks["homework_name"]
+    homework_status = homeworks["status"]
     if homework_status not in HOMEWORK_STATUSES:
-        raise KeyError("Такого статуса нет")
+        parse_status_message = f"Статус работы пришел {homework_status}"
+        raise KeyError(parse_status_message)
     verdict = HOMEWORK_STATUSES[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -94,11 +103,8 @@ def parse_status(homework):
 def check_tokens():
     """Проверка наличия токенов."""
     if not any(
-        [
-            (PRACTICUM_TOKEN is None),
-            (TELEGRAM_TOKEN is None),
-            (TELEGRAM_CHAT_ID is None),
-        ]
+        token is None
+        for token in [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]
     ):
         return True
 
@@ -114,8 +120,8 @@ def main():
             if check_tokens() is False:
                 raise TokenIsEmptyError
             response = get_api_answer(current_timestamp)
-            homework = check_response(response)[0]
-            message = parse_status(homework)
+            homeworks = check_response(response)[0]
+            message = parse_status(homeworks)
             if old_message != message:
                 send_message(bot, message)
             else:
